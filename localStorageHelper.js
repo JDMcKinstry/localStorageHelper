@@ -1,146 +1,292 @@
-if (Object['defineProperty'] && !window.hasOwnProperty('localStorageHelper')) {
-	Object.defineProperty(Window.prototype, 'localStorageHelper', {
-		value: function() {
-			//	variable for this class
-			var $this = this;
-			//	set whether if localstorage is isAvailable
-			this.isAvailable = function() {
-				try { return 'localStorage' in window && window['localStorage'] !== null; }
-				catch (e) { return !1 }
-			}();
+/*	!!!COMPLETE AND TOTAL REWITE!!! NOT YET FINISHED!!!
+	TODO: FINISH METHODS [getItem, removeItem]
+*/
+
+/**	localStorageHelper
+ *	Simple class to build on localStorage Object and ease use of that object along with providing a custom controlled event system.
+ *	*/
+;(function() {
+	var lsAvailable = function() { try { var a = window.localStorage; a.setItem("__storage_test__", "__storage_test__"); a.removeItem("__storage_test__"); return !0; } catch (b) { return !1; } }();
+	
+	/*------------------------------------------------------------------------*/
+	
+	function localStorageHelper(debuggingOnOff) {
+		//	always return undefined if localStorage not available
+		if (!this.available) return void 0;
+		
+		Object.defineProperties(this, {
+			'instance': { get: function() { return this; } }
 			
-			//	check if LS is even available, if not, throw error and process callback method if provided
-			if (!this.isAvailable) {
-				var msg = "[localStorage] is unavailble!";
-				if (arguments.length && typeof arguments[0] == "function") arguments[0].apply($this, [{ isAvailable: this.isAvailable, Error: msg }]);
-				throw new Error(msg);
-			}
+			/*	for debugging	*/
+			, 'debugging': { enumerable: false, value: debuggingOnOff?true:false, writable: true }
+			, 'info': { value: function() { if (this.debugging && console && console['info']) console.info.apply(window, arguments); } }
+			, 'debug': { value: function() { if (this.debugging && console && console['debug']) console.debug.apply(window, arguments); } }
+			, 'warn': { value: function() { if (this.debugging && console && console['warn']) console.warn.apply(window, arguments); } }
+			, 'error': { value: function() { if (this.debugging && console && console['error']) console.error.apply(window, arguments); } }
 			
-			//	simply creates a ticket/key by which to later associate each specific call to this class
-			$this.ticket = function(){for(var c=10, a=(Math.random()*eval("1e"+~~(50*Math.random()+50))).toString(36).split(""),b=3;b<a.length;b++)b==~~(Math.random()*b)+1&&a[b].match(/[a-z]/)&&(a[b]=a[b].toUpperCase());a=a.join("");a=a.substr(~~(Math.random()*~~(a.length/3)),~~(Math.random()*(a.length-~~(a.length/3*2)+1))+~~(a.length/3*2));return c?a.substr(a,c):a}();
-			$this.ticket = 'lsh_' + $this.ticket;
-			
-			//	HELPERS
-			this.keyExists = function(key) { return this.isAvailable && key !== void 0 && localStorage.key(key); }
-			this.keyAtIndex = function(i) { return this.isAvailable ? localStorage.key(i) : void 0; }
-			//	returns an array of keys
-			this.getKeys = function() {
-				if (!this.isAvailable) return void 0; 
-				var k = []; 
-				for (var i=0;i<localStorage.length;i++) k.push(localStorage.key(i)); 
-				return k;
-			}
-			//	returns array of values
-			this.getValues = function() {
-				if (!this.isAvailable) return void 0; 
-				var v = []; 
-				for (var i=0;i<localStorage.length;i++) v.push(this.get(localStorage.key(i))); 
-				return v;
-			}
-			//	(un)serialize	//	credit to http://phpjs.org/ for the following 2 methods
-			this.serialize = function(a){var b,d,c,f=c="",h=0;b=function(b){for(var e=0,a=0,d=b.length,c="",a=0;a<d;a++)c=b.charCodeAt(a),e=128>c?e+1:2048>c?e+2:e+3;return e};var k=function(a){var b,d,c=typeof a;if("object"===c&&!a)return"null";if("object"===c){if(!a.constructor)return"object";a=a.constructor.toString();(b=a.match(/(\w+)\(/))&&(a=b[1].toLowerCase());b=["boolean","number","string","array"];for(d in b)if(a===b[d]){c=b[d];break}}return c},g=k(a);switch(g){case "function":b="";break;case "boolean":b="b:"+(a?"1":"0");break;case "number":b=(Math.round(a)===a?"i":"d")+":"+a;break;case "string":b="s:"+b(a)+':"'+a+'"';break;case "array":case "object":b="a";for(d in a)a.hasOwnProperty(d)&&(c=k(a[d]),"function"!==c&&(c=d.match(/^[0-9]+$/)?parseInt(d,10):d,f+=this.serialize(c)+this.serialize(a[d]),h++));b+=":"+h+":{"+f+"}";break;default:b="N"}"object"!==g&&"array"!==g&&(b+=";");return b};
-			this.unserialize = function(p){var q=this;error=function(e,f,h,a){throw new q.window[e](f,h,a);};read_until=function(e,f,h){for(var a=2,b=[],g=e.slice(f,f+1);g!=h;)a+f>e.length&&error("Error","Invalid"),b.push(g),g=e.slice(f+(a-1),f+a),a+=1;return[b.length,b.join("")]};read_chrs=function(e,f,h){var a,b,g;g=[];for(a=0;a<h;a++)b=e.slice(f+(a-1),f+a),g.push(b),b=b.charCodeAt(0),b=128>b||160<=b&&255>=b||-1!=[338,339,352,353,376,402,8211,8212,8216,8217,8218,8220,8221,8222,8224,8225,8226,8230,8240,8364,8482].indexOf(b)?0:2048>b?1:2,h-=b;return[g.length,g.join("")]};_unserialize=function(e,f){var h,a,b,g,d,c,k,m,l;d=0;var n=function(a){return a};f||(f=0);h=e.slice(f,f+1).toLowerCase();a=f+2;switch(h){case "i":n=function(a){return parseInt(a,10)};c=read_until(e,a,";");d=c[0];c=c[1];a+=d+1;break;case "b":n=function(a){return 0!==parseInt(a,10)};c=read_until(e,a,";");d=c[0];c=c[1];a+=d+1;break;case "d":n=function(a){return parseFloat(a)};c=read_until(e,a,";");d=c[0];c=c[1];a+=d+1;break;case "n":c=null;break;case "s":c=read_until(e,a,":");d=c[0];b=c[1];a+=d+2;c=read_chrs(e,a+1,parseInt(b,10));d=c[0];c=c[1];a+=d+2;d!=parseInt(b,10)&&d!=c.length&&error("SyntaxError","String length mismatch");break;case "a":c={};b=read_until(e,a,":");d=b[0];b=b[1];a+=d+2;d=parseInt(b,10);g=!0;for(b=0;b<d;b++)k=_unserialize(e,a),m=k[1],k=k[2],a+=m,l=_unserialize(e,a),m=l[1],l=l[2],a+=m,k!==b&&(g=!1),c[k]=l;if(g){g=Array(d);for(b=0;b<d;b++)g[b]=c[b];c=g}a+=1;break;default:error("SyntaxError","Unknown / Unhandled data type(s): "+h)}return[h,a-f,n(c)]};return _unserialize(p+"",0)[2]};
-			
-			//	get/set/remove/clear local storage item(s) and fire get event
-			this.get = function(key) {
-				if (this.isAvailable) {
-					if (typeof key === "number") key = this.keyAtIndex(key);
-					if (this.keyExists(key)) {
-						var val;
-						try { return val = JSON.parse(localStorage.getItem(key)); }
-						catch(err) { return val = localStorage.getItem(key); }
-						finally { this.onGet.fire(key, val); }
-					}
-					else if (key === void 0) { // if no key provided, then assume "get all" and return Object of all items in localStorage
-						var a = {};
-						try {
-							for (var i=0;i<localStorage.length;i++) if (this.keyAtIndex(i)) a[this.keyAtIndex(i)] = this.get(this.keyAtIndex(i));
-							return a;
-						}
-						finally { this.onGet.fire(key, a); }
-					}
+		});
+		
+		for (var x in this.methods) definePropertyMethod.call(this, x);
+		
+		return this;
+	}
+	
+	/*------------------------------------------------------------------------*/
+	
+	function definePropertyMethod(name) {
+		if (!this[name])
+			Object.defineProperty(this, name, { value: function() { return this.fire.apply(this, [name].concat(Array.prototype.slice.call(arguments, 0))); } });
+		
+		if (!this.events[name]) {
+			Object.defineProperty(this.events, name, {
+				value: {
+					'begin': function() { return eventBegin.apply(this, [name].concat(Array.prototype.slice.call(arguments, 0))); }
+					, 'end': function() { return eventEnd.apply(this, [name].concat(Array.prototype.slice.call(arguments, 0))); }
 				}
-				return void 0;
-			}
-			this.set = function(key, value) {
-				if (this.isAvailable) this.onSet.fire(key, value, function() {
-					try {
-						try { localStorage.setItem(key, JSON.stringify(value)); }
-						catch(err) { localStorage.setItem(key, value); }
-						return true;
-					}
-					catch(err) {}
-					return false;
-				}());
-				return $this;
-			}
-			this.remove = function(key) {
-				if (this.isAvailable && this.keyExists(key)) this.onRemove.fire(key, this.get(key), function() {
-					try { localStorage.removeItem(key); return true; }
-					catch(err) { return false; }
-				}());
-				return $this;
-			}
-			this.clear = function() {
-				if (this.isAvailable) this.onClear.fire(null, null, function() {
-					try { localStorage.clear(); return true; }
-					catch(err) { return false; }
-				}());
-				return $this;
-			}
-			
-			//	EVENTS
-			function setEvent(eType) {
-				var eventName = "on" + (eType.charAt(0).toUpperCase() + eType.slice(1)),
-					ret = function(handler) {
-						if (typeof handler == "function") {
-							var $handlers = this[eventName].handlers,
-								strHandler = handler.toString().replace(/ |\t|\r|\n/ig, '');
-							for (var x in $handlers) if (strHandler == $handlers[x].toString().replace(/ |\t|\r|\n/ig, '')) return this[eventName];
-							$handlers.push(handler);
-						}
-						return this[eventName];
-					}
-				ret.fire = function(k, v, s) {
-					var $handlers = this.handlers,
-						args = { eventType: eType };
-					if (k !== undefined && k !== null) args.key = k
-					if (v !== undefined && v !== null) args.value = v
-					if (s !== undefined && s !== null) args.success = s
-					args.url = window.location.toString();
-					for (var x in $handlers) $handlers[x].apply($this, [args])
-				}
-				ret.handlers = [];
-				return ret;
-			}
-			this.on = function(a, b) {
-				a = "on" + (a.charAt(0).toUpperCase() + a.slice(1));
-				this.hasOwnProperty(a) && this[a].apply($this, [b]);
-				return $this;
-			};
-			this.off = function(a, b) {
-				a = "on" + (a.charAt(0).toUpperCase() + a.slice(1));
-				if (this.hasOwnProperty(a) && "function" == typeof b) {
-					var c = this[a].handlers,
-						e = b.toString().replace(/ |\t|\r|\n/ig, ""),
-						d;
-					for (d in c)
-						if (e == c[d].toString().replace(/ |\t|\r|\n/ig, "")) {
-							c.splice(d, 1);
-							break;
-						}
-				}
-				return $this;
-			};
-			
-			this.onGet = setEvent.apply(this, ['get']);
-			this.onSet = setEvent.apply(this, ['set']);
-			this.onRemove = setEvent.apply(this, ['remove']);
-			this.onClear = setEvent.apply(this, ['clear']);
-			
-			//	Final summary
-			
-			return $this;
+			});
+			Object.defineProperty(this.events[name].begin, 'callbacks', { value: [] })
+			Object.defineProperty(this.events[name].end, 'callbacks', { value: [] })
 		}
+		return this;
+	}
+	
+	function eventBegin(name) {
+		if (this.instance) {
+			var args = Array.prototype.slice.call(arguments, 1);
+			if (this.events[name] && this.events[name].begin) {
+				var cb = this.events[name].begin.callbacks;
+				if (cb && cb.length) {
+					this.info('Triggering ' + name + "Begin Callbacks:\n\t", cb);
+					for (var x in cb) cb[x].apply(this, [new Event(name+'Begin'), arguments]);
+				}
+			}
+		}
+		return this;
+	}
+	
+	function eventEnd(name) {
+		if (this.instance) {
+			var args = Array.prototype.slice.call(arguments, 1);
+			if (this.events[name] && this.events[name].end) {
+				var cb = this.events[name].end.callbacks;
+				if (cb && cb.length) {
+					this.info('Triggering ' + name + "End Callbacks:\n\t", cb);
+					for (var x in cb) cb[x].apply(this, [new Event(name+'End'), arguments]);
+				}
+			}
+		}
+		return this;
+	}
+	
+	/*------------------------------------------------------------------------*/
+	
+	function methodClear() {
+		localStorage.clear();
+		return this;
+	}
+	
+	function methodFire(name) {
+		var ret = null;
+		this.trigger(name+'Begin');
+		if (this.instance) {
+			if (this.methods[name]) {
+				var args = Array.prototype.slice.call(arguments, 1);
+				this.debug("Firing Method:\t[" + name + "]\tArguments:\t", args);
+				var ret = this.methods[name].apply(this, args);
+				ret = ret;
+			}
+		}
+		this.trigger(name+'End');
+		return ret;
+	}
+	
+	function methodGetItem() {
+		var args = Array.prototype.slice.call(arguments, 0), ret = null,
+			items = function() { var a = {}; for (var b in localStorage) a[b] = localStorage[b]; return a; }();
+		
+		
+		
+		return items
+	}
+	
+	/**	localStorageHelper.key([mixed])
+	 *	Retrieve key(s) names or index numbers.
+	 *
+	 *	@example localStorageHelper.key(); // Returns all current keys in localStorage (these are set items)
+	 *	@example localStorageHelper.key(1); // Integer argument will attempt to return key name at that index. Else null.
+	 *	@example localStorageHelper.key('name'); // String argument will attempt to return key index with that name. Else null.
+	 *	@example localStorageHelper.key(0, 2, 3); // Multiple arguments will cause Object return, whereby prop name is your argument and prop value is return.
+	 *	@example localStorageHelper.key([0, 'name']) // Passing an array will have the same effect as above.
+	 *	*/
+	function methodKey() {
+		//	do work
+		var args = Array.prototype.slice.call(arguments, 0), ret = null;
+		if (!args.length) ret = Object.keys(localStorage);
+		else if (1 == args.length) {
+			var a = args[0];
+			if ("number" == typeof a) ret = localStorage.key(a);
+			else if ("string" == typeof a && Object.keys(localStorage).indexOf(a) > -1) ret = Object.keys(localStorage).indexOf(a);
+			else if (a instanceof Array) ret = localStorageHelper.prototype.methods.key.apply(localStorageHelper, a);
+		}
+		else {
+			for (var a = {}, c = 0; c < args.length; c++) {
+				var b = args[c], d = localStorageHelper.prototype.methods.key(b);
+				a[b] || (a[b] = d);
+			};
+			ret = a ? a : null;
+		}
+		
+		//	return value
+		return ret;
+	}
+	
+	function methodKeyExists(name) {
+		try { return localStorage[name] ? true : false; } catch(e) {}
+		return false;
+	}
+	
+	function methodOff(name, callback) {
+		
+		if (this.instance) {
+			if ((name && 'string' == typeof name) && (callback && 'function' == typeof callback)) {
+				var rx = new RegExp('^(([a-z]){3,}([A-Z]{1}[a-z]+){0,1})(Begin|End)$'),
+					eventKey = name, eventType = 'end';
+				if (rx.test(name)) {
+					eventKey = name.match(rx)[1];	//	extract keyName
+					eventType = name.match(rx)[4].toLowerCase();	//	extract keyType
+				}
+				if (this.events[eventKey] && this.events[eventKey][eventType].callbacks) {
+					var cbs = this.events[eventKey][eventType].callbacks,
+						a = callback.toString().replace(/ |\t|\r|\n/ig, "");
+					for (var i=0;i<cbs.length;i++) {
+						var b = cbs[i].toString().replace(/ |\t|\r|\n/ig, "");
+						if (a == b) cbs.splice(i, 1);
+					}
+				}
+			}
+		}
+		return this;
+	}
+	
+	function methodOn(name, callback) {
+		if (this.instance) {
+			if ((name && 'string' == typeof name) && (callback && 'function' == typeof callback)) {
+				var rx = new RegExp('^(([a-z]){3,}([A-Z]{1}[a-z]+){0,1})(Begin|End)$'),
+					eventKey = name, eventType = 'end';
+				if (rx.test(name)) {	//	trigger only begin or end event
+					eventKey = name.match(rx)[1];	//	extract keyName
+					eventType = name.match(rx)[4].toLowerCase();	//	extract keyType
+				}
+				if (this.events[eventKey]) {
+					var cbs = this.events[eventKey][eventType].callbacks,
+						a = callback.toString().replace(/ |\t|\r|\n/ig, "");
+					if (cbs.indexOf(a) == -1) this.events[eventKey][eventType].callbacks.push(callback);
+				}
+				this.info(this.events[eventKey]?true:false, [this.events[eventKey], this.events[eventKey][eventType], this.events[eventKey][eventType].callbacks])
+			}
+		}
+		return this;
+	}
+	
+	function methodRealType(toLower) {
+		var r = typeof this;
+		try {
+			if (window.hasOwnProperty('jQuery') && this.constructor && this.constructor == jQuery) r = 'jQuery';
+			else r = this.constructor && this.constructor.name ? this.constructor.name : Object.prototype.toString.call(this).slice(8, -1);
+		}
+		catch(e) { if (this['toString']) r = this.toString().slice(8, -1); }
+		return !toLower ? r : r.toLowerCase();
+	}
+	
+	function methodRemoveItem() {
+		
+	}
+	
+	function methodSetItem() {
+		var args = Array.prototype.slice.call(arguments, 0), ret = null;
+		if (args.length > 1) {
+			//	create items object to maintain control of passed params for use in storing
+			var items = {};
+			for (var i=0;i<args.length;i++) {
+				var ai = args[i],
+					t = localStorageHelper.prototype.realType.call(ai);
+				if (i && localStorageHelper.prototype.realType.call(args[i-1]) == 'String') {
+					items[args[i-1]] = { type: t, value: ai };
+				}
+				else if (t == 'jQuery') {
+					if (window['jQuery'] && ai['selector']) {
+						var eles = [];
+						for (var x in ai) {
+							if (ai[x] && ai[x]['outerHTML'] && typeof ai[x]['outerHTML'] == 'string') eles.push(ai[x].outerHTML);
+						}
+						if (eles.length) items[ai.selector] = { type: t, value: eles };
+					}
+				}
+				else if (typeof ai == 'object') {
+					for (var x in ai) {
+						if (x && typeof x == 'string') {
+							t = localStorageHelper.prototype.realType.call(ai[x]);
+							items[x] = { type: t, value: ai[x] };
+						}
+					}
+				}
+			}
+			//	items ready! let's do this!
+			for (var x in items) localStorage.setItem('__lsh__'+x, JSON.stringify(items[x]));
+		}
+		return this;
+	}
+	
+	function methodTrigger(name) {
+		if (this.instance) {
+			if (name && typeof name == 'string') {
+				var args = Array.prototype.slice.call(arguments, 1),
+					rx = new RegExp('^(([a-z]){3,}([A-Z]{1}[a-z]+){0,1})(Begin|End)$'),
+					eventKey = name, eventType = 'end';
+				if (rx.test(name)) {	//	trigger only begin or end event
+					eventKey = name.match(rx)[1];	//	extract keyName
+					eventType = name.match(rx)[4].toLowerCase();	//	extract keyType
+					//if (this.events[eventKey]) return this.events[eventKey][eventType].apply(this, Array.prototype.slice.call(arguments, 1));
+				}
+				this.warn("Triggering Event:\t[" + name + "]\tArguments:\t", args);
+				if (this.events[eventKey]) return this.events[eventKey][eventType].apply(this, args);
+			}
+		}
+		return null;
+	}
+	
+	/*------------------------------------------------------------------------*/
+	
+	Object.defineProperty(localStorageHelper, 'available', { enumerable: true, value: lsAvailable, writeable: false })
+	
+	Object.defineProperties(localStorageHelper.prototype, {
+		'available': { enumerable: true, get: function() { return localStorageHelper.available; }, writeable: false }
+		, 'callbacks': { value: {} }
+		, 'events': { value: {} }
+		, 'fire': { value: methodFire }
+		, 'keys': { get: function() { return Object.keys(localStorage); } }
+		, 'length': { get: function() { return this.available ? localStorage.length : null; } }
+		, 'methods': { value: {	//	any method added to this list will be assigned events and a callbacks list for events
+			'clear': methodClear
+			, 'getItem': methodGetItem
+			, 'key': methodKey
+			, 'keyExists': methodKeyExists
+			, 'removeItem': methodRemoveItem
+			, 'setItem': methodSetItem
+		} }
+		, 'off': { value: methodOff }
+		, 'on': { value: methodOn }
+		, 'realType': { value: methodRealType }
+		, 'trigger': { value: methodTrigger }
 	});
-}
+	
+	
+	function info() { if (console && console['info']) console.info.apply(window, arguments); }
+	
+	
+	window.localStorageHelper = localStorageHelper;
+	window.lsh = new localStorageHelper(true);
+	info("Enumerable Keys:localStorageHelper\t", $.map(localStorageHelper, function(v,k) { return k; }));
+	info("Enumerable Keys:lsh\t\t\t\t\t", $.map(lsh, function(v,k) { return k; }));
+	//console.log(lsh.key([0, 'bob', 2, 'jane', 'bill', 1]))
+})();
