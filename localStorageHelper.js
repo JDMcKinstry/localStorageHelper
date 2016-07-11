@@ -1,7 +1,3 @@
-/*	!!!COMPLETE AND TOTAL REWITE!!! NOT YET FINISHED!!!
-	TODO: FINISH METHODS [getItem, removeItem]
-*/
-
 /**	localStorageHelper
  *	Simple class to build on localStorage Object and ease use of that object along with providing a custom controlled event system.
  *	*/
@@ -80,6 +76,26 @@
 	
 	/*------------------------------------------------------------------------*/
 	
+	function methodArrangeArgs() {
+		var args = Array.prototype.slice.call(arguments, 0),
+			prefix = this.prefix || this.prototype.prefix,
+			ret = [];
+		for (var i=0;i<args.length;i++) {
+			var a = args[i];
+			if (typeof a == 'string') {
+				var b = prefix + a;
+				if (ret.indexOf(b) == -1 && localStorageHelper.prototype.methods.keyExists(b)) ret.push(b);
+				if (ret.indexOf(a) == -1 && localStorageHelper.prototype.methods.keyExists(a)) ret.push(a);
+			}
+			else if (typeof a == 'number') {
+				var b = localStorageHelper.prototype.methods.key.call(localStorageHelper, a)
+				if (b && ret.indexOf(b) == -1) ret.push(b);
+			}
+			else if (a instanceof Array) ret = ret.concat(this.arrangeArgs.apply(this, a));
+		}
+		return ret;
+	}
+	
 	function methodClear() {
 		localStorage.clear();
 		return this;
@@ -101,12 +117,48 @@
 	}
 	
 	function methodGetItem() {
-		var args = Array.prototype.slice.call(arguments, 0), ret = null,
-			items = function() { var a = {}; for (var b in localStorage) a[b] = localStorage[b]; return a; }();
+		var args = localStorageHelper.prototype.arrangeArgs.apply(this, arguments),
+			items = null,
+			count = 0;
+		if (!args.length) {
+			if (this.length) {	//	gets localstorage length
+				items = {}
+				for (var x in localStorage) {
+					var y = localStorage[x];
+					try { items[x] = JSON.parse(y); } catch(e) { items[x] = y; }
+					count++;
+				}
+			}
+		}
+		else if (args.length == 1) {
+			if (typeof args[0] == 'string') {	//	everything should come back to this if statement!
+				var name = args[0].replace(this.prefix, ''),
+					item = null;
+				if (localStorage[name]) item = function(n) { try { return JSON.parse(n); } catch(e) {} return n; }(localStorage[name]);
+				if (item) {
+					var isJQuery = item.hasOwnProperty('type') && item.type == 'jQuery';
+					item = item.hasOwnProperty('value') ? item['value'] : item;
+					
+					if (isJQuery && item instanceof Array && window.hasOwnProperty('jQuery')) {
+						var col  = jQuery('<div />');
+						for (var x in item) col.append(jQuery(item[x]).get());
+						item = col.children();
+					}
+					
+					items = item;
+				}
+			}
+		}
+		else if (args.length > 1) {
+			items = {};
+			for (var x in args) {
+				var ax = args[x],
+				item = localStorageHelper.prototype.methods.getItem.call(localStorageHelper, args[x]);
+				if (item != null) items[args[x]] = item;
+			}
+		}
 		
-		
-		
-		return items
+		return items;
 	}
 	
 	/**	localStorageHelper.key([mixed])
@@ -199,17 +251,22 @@
 	}
 	
 	function methodRemoveItem() {
-		
+		var args = localStorageHelper.prototype.arrangeArgs.apply(this, arguments);
+		if (args.length) for (var i=0;i<args.length;i++) localStorage.removeItem(args[i]);
+		return this;
 	}
 	
 	function methodSetItem() {
 		var args = Array.prototype.slice.call(arguments, 0), ret = null;
+		
+		//	create items object to maintain control of passed params for use in storing
+		var items = {};
+		
 		if (args.length > 1) {
-			//	create items object to maintain control of passed params for use in storing
-			var items = {};
 			for (var i=0;i<args.length;i++) {
 				var ai = args[i],
 					t = localStorageHelper.prototype.realType.call(ai);
+				console.log([i && localStorageHelper.prototype.realType.call(args[i-1]) == 'String'], t == 'jQuery', typeof ai == 'object')
 				if (i && localStorageHelper.prototype.realType.call(args[i-1]) == 'String') {
 					items[args[i-1]] = { type: t, value: ai };
 				}
@@ -217,7 +274,7 @@
 					if (window['jQuery'] && ai['selector']) {
 						var eles = [];
 						for (var x in ai) {
-							if (ai[x] && ai[x]['outerHTML'] && typeof ai[x]['outerHTML'] == 'string') eles.push(ai[x].outerHTML);
+							if (ai[x] && ai[x]['outerHTML'] && typeof ai[x]['outerHTML'] == 'string') eles.push(ai[x].outerHTML.replace(/>(\n|\r|\t)*</g, '><'));
 						}
 						if (eles.length) items[ai.selector] = { type: t, value: eles };
 					}
@@ -231,9 +288,20 @@
 					}
 				}
 			}
-			//	items ready! let's do this!
-			for (var x in items) localStorage.setItem('__lsh__'+x, JSON.stringify(items[x]));
 		}
+		else if (localStorageHelper.prototype.realType.call(args[0]) == 'jQuery') {
+			var ai = args[0],
+				t = localStorageHelper.prototype.realType.call(ai);
+			if (window['jQuery'] && ai['selector']) {
+				var eles = [];
+				for (var x in ai) {
+					if (ai[x] && ai[x]['outerHTML'] && typeof ai[x]['outerHTML'] == 'string') eles.push(ai[x].outerHTML.replace(/>(\n|\r|\t)*</g, '><'));
+				}
+				if (eles.length) items[ai.selector] = { type: t, value: eles };
+			}
+		}
+		//	items ready! let's do this!
+		if (items) for (var x in items) localStorage.setItem(this.prefix+x, JSON.stringify(items[x]));
 		return this;
 	}
 	
@@ -261,6 +329,7 @@
 	
 	Object.defineProperties(localStorageHelper.prototype, {
 		'available': { enumerable: true, get: function() { return localStorageHelper.available; }, writeable: false }
+		, 'arrangeArgs': { value: methodArrangeArgs }
 		, 'callbacks': { value: {} }
 		, 'events': { value: {} }
 		, 'fire': { value: methodFire }
@@ -276,17 +345,10 @@
 		} }
 		, 'off': { value: methodOff }
 		, 'on': { value: methodOn }
+		, 'prefix': { value: '__lsh__' }
 		, 'realType': { value: methodRealType }
 		, 'trigger': { value: methodTrigger }
 	});
 	
-	
-	function info() { if (console && console['info']) console.info.apply(window, arguments); }
-	
-	
-	window.localStorageHelper = localStorageHelper;
-	window.lsh = new localStorageHelper(true);
-	info("Enumerable Keys:localStorageHelper\t", $.map(localStorageHelper, function(v,k) { return k; }));
-	info("Enumerable Keys:lsh\t\t\t\t\t", $.map(lsh, function(v,k) { return k; }));
-	//console.log(lsh.key([0, 'bob', 2, 'jane', 'bill', 1]))
+	if (!window.hasOwnProperty('localStorageHelper')) window.localStorageHelper = localStorageHelper;
 })();
